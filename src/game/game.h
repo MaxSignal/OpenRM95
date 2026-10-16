@@ -283,6 +283,7 @@ public:
     void fadeToBlack(int mode);                    // FUN_00432042
     void teleportListChange(int map, int add);     // FUN_004322aa
     void playMovie(const EventCommand& c);         // FUN_00435377
+    bool moviePlaying = false, movieBreak = false;
     void deriveStat(int which, int k);             // FUN_0042d11a
     void changeCondition(int k, int op);           // FUN_0042c03c
     void reloadPalette(bool fromFile);             // FUN_004352a6

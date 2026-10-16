@@ -408,6 +408,15 @@ void Game::mainLoop() {
         if (testEvent >= 0 && !eventRunning && hero_ && hero_->step == 0) {
             int t = testEvent;
             testEvent = -1;
+            Chara tmp;
+            tmp.isEvent = true;
+            EventHeader h;
+            if (loadEventHeader(gameDir, t, h)) {
+                tmp.attrs = h.attrs;
+                selectPage(&tmp, itemCounts, (uint32_t)money());
+            }
+            waitingPage = tmp.page < 0 ? 0 : tmp.page;
+            waitingIndex = 0;
             runEvent(t, nullptr);
         }
         bool toPost = false;

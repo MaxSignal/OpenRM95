@@ -9,14 +9,14 @@ processing, message and menu windows, battles, shops, inns, the 8-bit palette di
 its screen transitions and palette effects, MIDI/WAV playback and save files. Save files use
 the format of the original runtime.
 
-OpenRM95 is written in C++17 and uses SDL2, SDL2_mixer and FreeType.
+OpenRM95 is written in C++17 and uses SDL2, SDL2_mixer and FreeType, and optionally FFmpeg.
 
 ## Status
 
-OpenRM95 is under development. Not implemented yet:
+OpenRM95 is under development. Known differences from the original runtime:
 
-* AVI movies (the "play movie" event command is skipped)
-* Joystick input of the original runtime (game controllers are mapped to the keyboard instead)
+* Game controllers are mapped to the keyboard instead of the joystick handling of the original runtime.
+* AVI movies are shown in true colour and without their audio track.
 
 Instead of the Windows file dialog of the original runtime, saving and loading use a small
 in-game file list (`*.sav` files in the game folder).
@@ -28,13 +28,16 @@ Requirements:
 * A C++17 compiler (GCC, Clang or MSVC)
 * CMake 3.16 or newer
 * SDL2, SDL2_mixer and FreeType (development packages)
+* Optional: FFmpeg (libavcodec, libavformat, libswscale) for AVI movies in codecs other than the
+  built-in ones (Cinepak, RLE8, uncompressed), e.g. Indeo. Disable with `-DOPENRM95_WITH_FFMPEG=OFF`.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-On Debian/Ubuntu the dependencies are `libsdl2-dev libsdl2-mixer-dev libfreetype-dev`.
+On Debian/Ubuntu the dependencies are `libsdl2-dev libsdl2-mixer-dev libfreetype-dev` and
+optionally `libavcodec-dev libavformat-dev libswscale-dev`.
 
 ## Running
 
@@ -78,6 +81,8 @@ used.
 * RPG Maker 95 runtime `GAME.EXE` version 1.23, analysed with Ghidra:
   <https://ghidra-sre.org/>
 * Wine, used to run the original runtime for comparison: <https://www.winehq.org/>
+* FFmpeg, used as reference for the Cinepak decoder and as optional movie decoder:
+  <https://ffmpeg.org/>
 * Win32 API documentation (window, GDI and multimedia functions used by the original runtime):
   <https://learn.microsoft.com/en-us/windows/win32/api/>
 

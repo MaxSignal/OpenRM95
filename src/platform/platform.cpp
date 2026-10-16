@@ -194,6 +194,18 @@ void Platform::compose() {
     for (int i = 0; i < 640 * 480; i++) frame_[i] = lut[p.px[i]];
     for (Overlay* o : display_->overlays) {
         if (!o->visible) continue;
+        if (!o->rgb.empty()) {
+            for (int y = 0; y < o->rgbH; y++) {
+                int sy = o->y + y;
+                if (sy < 0 || sy >= 480) continue;
+                for (int x = 0; x < o->rgbW; x++) {
+                    int sx = o->x + x;
+                    if (sx < 0 || sx >= 640) continue;
+                    frame_[sy * 640 + sx] = 0xff000000u | o->rgb[(size_t)y * o->rgbW + x];
+                }
+            }
+            continue;
+        }
         for (int y = 0; y < o->surf.height; y++) {
             int sy = o->y + y;
             if (sy < 0 || sy >= 480) continue;

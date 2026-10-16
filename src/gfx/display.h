@@ -10,6 +10,9 @@ struct Overlay {
     int x = 0, y = 0;
     Surface surf;          // outer window incl. frame, palette indices
     bool visible = true;
+    // true colour content (movies): used instead of surf when not empty, 0x00RRGGBB
+    std::vector<uint32_t> rgb;
+    int rgbW = 0, rgbH = 0;
 };
 
 // Emulation of the DirectDraw wrapper object of GAME.EXE (DAT_0046ebc8): 8-bit back buffer and

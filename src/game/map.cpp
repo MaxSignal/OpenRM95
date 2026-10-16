@@ -595,6 +595,7 @@ void Game::createMapEvents() {
             ev->y = ev->destY = y;
             ev->attrs = hdr.attrs;
             for (int p = 0; p < 4; p++) ev->pageRoutes[p] = hdr.pageRoutes[p];
+            LOG_DEBUG("map %d: event %d at %d,%d", curMap, id, x, y);
             events.push_back(std::move(ev));
         }
 }

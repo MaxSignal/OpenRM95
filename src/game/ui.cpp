@@ -284,6 +284,7 @@ void Game::onMouseDblClick() {
 }
 
 void Game::onKeyDown(int vk) {
+    if (moviePlaying && vk == VK_ESCAPE_) movieBreak = true;  // MCI_BREAK
     pumpMessages();
     if (vk == VK_F4_) { platform().toggleFullscreen(); return; }
     if (vk == VK_F12_) { platform().saveScreenshot("screenshot.ppm"); return; }
