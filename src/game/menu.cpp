@@ -1102,6 +1102,7 @@ void Game::systemMenu() {
         break;
     case 4:
         LOG_INFO("quit selected in the system menu");
+        if (testNoQuit) break;
         quit = true;
         abortTick = true;
         break;

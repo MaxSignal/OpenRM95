@@ -407,6 +407,7 @@ public:
     std::string pendingSave;              // --save-at (testing)
     int testBattle = 0;                   // --test-battle (testing)
     int testEvent = -1;                   // --test-event (testing)
+    bool testNoQuit = false;              // --test-noquit (testing)
 
     // misc
     int titleSequence();                  // returns 0 new game, 1 loaded

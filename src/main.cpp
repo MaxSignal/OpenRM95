@@ -39,7 +39,8 @@ static void usage() {
         "  --quit-at MS        quit at virtual time MS\n"
         "  --save-at MS:FILE   save the game at virtual time MS (when the map is idle)\n"
         "  --test-battle N     start a battle with troop N (1-based) when the map is shown\n"
-        "  --test-event N      run the script of event N (eveN.dat) when the map is shown\n");
+        "  --test-event N      run the script of event N (eveN.dat) when the map is shown\n"
+        "  --test-noquit       ignore the quit command of the system menu\n");
 }
 
 static int keyByName(const std::string& n) {
@@ -81,6 +82,7 @@ int main(int argc, char** argv) {
         else if (a == "--load") loadFile = next();
         else if (a == "--test-battle") game().testBattle = std::atoi(next().c_str());
         else if (a == "--test-event") game().testEvent = std::atoi(next().c_str());
+        else if (a == "--test-noquit") game().testNoQuit = true;
         else if (a == "--save-at") { std::string s = next(); size_t c = s.find(':'); if (c != std::string::npos) saves.push_back({(uint32_t)std::atoi(s.c_str()), s.substr(c + 1)}); }
         else dir = a;
     }
@@ -140,6 +142,7 @@ int main(int argc, char** argv) {
     pf.setTitle(sjisToUtf8(fs::baseName(g.rpgPath.substr(0, g.rpgPath.size() - 4))));
     g.startSave = loadFile;
     g.run();
+    for (auto& w : g.windows) w.reset();  // before the display object goes away
     audio().shutdown();
     pf.shutdown();
     return 0;
