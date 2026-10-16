@@ -91,7 +91,7 @@ public:
     bool savingEnabled = false;        // DAT_0046a260
 
     // ---------------- party ----------------
-    PartyBlock pb{};
+    alignas(8) PartyBlock pb{};
     int16_t itemCounts[100] = {};      // *(G+0x10dfe)
     Battler enemies[10];               // G+0x100de
     int enemyCount = 0;                // G+0x100da
@@ -198,6 +198,14 @@ public:
     void pumpMessages();                    // FUN_00440e73
     void onKeyDown(int vk);                 // FUN_0042ecd0
     void onKeyUp(int vk);                   // FUN_00434744
+    void onMouseDown(int x, int y);         // FUN_0042f1bf
+    void onMouseMove(int x, int y);         // FUN_0042f298
+    void onRightDown(bool leftHeld);        // FUN_0042f468
+    void onMouseDblClick();                 // FUN_004346f5
+    bool mouseDrag = false;                 // DAT_0046dba0
+    int mouseX0 = 0, mouseY0 = 0;           // DAT_0046db8c / 90
+    int mouseDir = 5;                       // DAT_0046db94
+    int mouseCount = 0;                     // DAT_0046db9c
     void handlePosted(const PostedMessage& m);
     void onSelect(int type, int lparam);    // FUN_00433d2e
     void onCancel(int type);                // FUN_00434102

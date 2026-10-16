@@ -39,6 +39,7 @@ public:
     bool popEvent(InputEvent& ev);
     void clearEvents(bool keysOnly);
     bool keyHeld(int vk) const;         // GetAsyncKeyState(vk) & 0x8000
+    bool mouseHeld() const { return leftHeld_; }
     bool quitRequested() const { return quit_; }
     void requestQuit() { quit_ = true; }
 
@@ -57,6 +58,7 @@ public:
     void advanceVirtual(uint32_t ms) { virtualTime_ += ms; }
 
 private:
+    bool leftHeld_ = false;
     void pushKey(int vk, bool down, bool repeat);
     void compose();
     Display* display_ = nullptr;

@@ -30,7 +30,7 @@ public:
     // reads n bytes (zero padded on EOF)
     void bytes(void* out, size_t n) {
         size_t a = n_ - p_ < n ? n_ - p_ : n;
-        memcpy(out, d_ + p_, a);
+        if (a) memcpy(out, d_ + p_, a);
         if (a < n) { memset((uint8_t*)out + a, 0, n - a); ok_ = false; }
         p_ += a;
     }

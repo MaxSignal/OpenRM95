@@ -374,7 +374,15 @@ void Game::run() {
 // ------------------------------------------------------------------------------------------
 // the map main loop (FUN_0041f744 from LAB_0041fd25)
 
-void Game::mouseWalk() {}
+void Game::mouseWalk() {
+    // FUN_0041f6dd: mouse auto-walk
+    Chara* h = mapParty[0];
+    startMotion(h, mouseDir);
+    if (h->motion != mouseDir) {
+        mouseDir = 5;
+        h->moveType = 5;
+    }
+}
 
 void Game::mainLoop() {
     int scrollDir = -1;

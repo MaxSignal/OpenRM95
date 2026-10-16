@@ -1101,6 +1101,7 @@ void Game::systemMenu() {
         versionDialog();
         break;
     case 4:
+        LOG_INFO("quit selected in the system menu");
         quit = true;
         abortTick = true;
         break;
@@ -1109,12 +1110,14 @@ void Game::systemMenu() {
 }
 
 void Game::versionDialog() {
-    // FUN_00434975: the version dialog of GAME.EXE 1.23 (resource 22000)
-    std::string t = J("ＲＰＧツクール９５\nRuntime Routine ver 1.23\n\nCopyright (c) 1997 by ASCII Corporation\nCopyright (c) 1997 by You & Tsune\nAll Rights Reserved.\n\nOpenRM95 reimplementation");
-    int w = 380, h = lineH() * 9 + 14;
+    // FUN_00434975: modeless dialog (resource 22000) filled from the VERSIONINFO of GAME.EXE 1.23
+    std::string t = J("ＲＰＧツクール９５\nRuntime Routine ver 1.23\n\nCopyright (c) 1997 by ASCII Corporation\n"
+                      "Copyright (c) 1997 by You & Tsune\nAll Rights Reserved.");
+    int w = 420, h = 191;
     eventRunning = true;
-    createWindow(12, (640 - w) / 2, (480 - h) / 2, w, h, nullptr, -1);
-    win(12)->setText(1, t);
+    RpgWindow* d = createWindow(12, (640 - w) / 2, 69, w, h, nullptr, -1);
+    if (Label* l = d->label(1)) { l->r = Rect(4, 16, w - 10, h - 10); l->fmt = 0x11; }
+    d->setText(1, t);
     flushKeys(true);
     waitTenths(0);
     closeWindow(12, true);

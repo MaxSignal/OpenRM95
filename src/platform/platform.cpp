@@ -16,6 +16,7 @@ bool Platform::init(const std::string& title, int scale, bool fullscreen, bool h
     headless_ = headless;
     scale_ = scale < 1 ? 1 : scale;
     frame_.assign(640 * 480, 0);
+    SDL_SetMainReady();
     if (headless) {
         SDL_SetHint(SDL_HINT_VIDEODRIVER, "dummy");
         if (SDL_Init(SDL_INIT_TIMER) != 0) { LOG_ERROR("SDL_Init: %s", SDL_GetError()); return false; }
@@ -131,6 +132,7 @@ void Platform::poll() {
             case SDL_MOUSEBUTTONUP: {
                 InputEvent e;
                 bool left = ev.button.button == SDL_BUTTON_LEFT;
+                if (left) leftHeld_ = ev.type == SDL_MOUSEBUTTONDOWN;
                 if (ev.type == SDL_MOUSEBUTTONDOWN)
                     e.type = left ? (ev.button.clicks >= 2 ? InputEvent::MouseDblClick : InputEvent::MouseDown) : InputEvent::RightDown;
                 else {

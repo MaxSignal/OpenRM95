@@ -156,13 +156,21 @@ void Game::pumpMessages() {
             lastMouseX = e.x;
             lastMouseY = e.y;
             // a click on a window selects the item under the cursor
+            bool onWindow = false;
             for (int t = 12; t >= 0; t--) {
                 RpgWindow* w = win(t);
                 if (!w) continue;
+                if (e.x < w->x || e.y < w->y || e.x >= w->x + w->w || e.y >= w->y + w->h) continue;
+                onWindow = true;
                 int cx = e.x - w->x - 3, cy = e.y - w->y - 3;
-                if (cx < 0 || cy < 0 || cx >= w->clientW() || cy >= w->clientH()) continue;
                 if (w->inactive) break;
                 if (w->itemCount == -1) { post(0x401, t, 0); break; }
+                if (w->hasButtons && cy >= 0xb6 && cy < 0xb6 + 20) {
+                    if (cx >= 0x91 && cx < 0x91 + 40) w->onKey(VK_LEFT_);
+                    else if (cx >= 0xbe && cx < 0xbe + 40) w->onKey(VK_RIGHT_);
+                    break;
+                }
+                if (cx < 0 || cy < 0 || cx >= w->clientW() || cy >= w->clientH()) break;
                 int row = cy / w->lineH;
                 if (row < w->rows && cy < 180) {
                     w->drawCursor(w->curCol, w->curRow, false);
@@ -174,19 +182,106 @@ void Game::pumpMessages() {
                 }
                 break;
             }
-            if (keyReleased) okPressed = true;
+            if (!onWindow) {
+                if (e.type == InputEvent::MouseDblClick) onMouseDblClick();
+                else onMouseDown(e.x, e.y);
+            } else if (keyReleased) okPressed = true;
             break;
         }
-        case InputEvent::RightDown:
-            if (RpgWindow* w = win(focusedType)) post(0x402, w->type, 0);
-            else onKeyDown(VK_ESCAPE_), onKeyUp(VK_ESCAPE_);
+        case InputEvent::MouseUp:
+            mouseDrag = false;
+            mouseCount = 0;
             break;
+        case InputEvent::MouseMove:
+            if (e.vk) onMouseMove(e.x, e.y);
+            else keyReleased = true;
+            break;
+        case InputEvent::RightDown: {
+            bool onWindow = false;
+            for (int t = 12; t >= 0; t--) {
+                RpgWindow* w = win(t);
+                if (w && e.x >= w->x && e.y >= w->y && e.x < w->x + w->w && e.y < w->y + w->h) { onWindow = true; break; }
+            }
+            if (onWindow) { if (RpgWindow* w = win(focusedType)) post(0x402, w->type, 0); }
+            else onRightDown(platform().mouseHeld());
+            break;
+        }
         default: break;
         }
     }
 }
 
 void Game::onKeyUp(int) { keyReleased = true; }
+
+// ------------------------------------------------------------------------------------------
+// mouse on the main window (FUN_0042f1bf, FUN_0042f298, FUN_0042f444, FUN_0042f468, FUN_004346f5)
+
+void Game::onMouseDown(int x, int y) {
+    okPressed = true;
+    if (inBattle) return;
+    if (menuRequested) {
+        if (menuMode == 2 && win(0)) {
+            closeWindow(0, true);
+            if (RpgWindow* w = win(0xb)) w->activate();
+        } else {
+            closeAllWindows(true);
+        }
+    }
+    if (mapParty[0] && mapParty[0]->moveType == 9) mapParty[0]->moveType = 5;
+    if (!mouseDrag) {
+        mouseX0 = x;
+        mouseY0 = y;
+        mouseDrag = true;
+        return;
+    }
+    mouseCount = 0;
+}
+
+void Game::onMouseMove(int x, int y) {
+    keyReleased = true;
+    Chara* h = mapParty[0];
+    if (eventRunning || inBattle || !h || (h->moveType != 5 && h->moveType != 9) || h->routeMode != kRouteNone ||
+        !mouseDrag || moveControl >= 2)
+        return;
+    int dx = x - mouseX0, dy = y - mouseY0;
+    if (std::abs(dx) <= 1 && std::abs(dy) <= 1) return;
+    int dir;
+    if (std::abs(dy) < std::abs(dx)) dir = dx < 1 ? 3 : 1;
+    else dir = dy < 1 ? 0 : 2;
+    if (h->motion == -1) startMotion(h, dir);
+    if (dir == mouseDir) {
+        int c = mouseCount;
+        mouseCount++;
+        if (c > 10000) mouseCount = 10000;
+    } else {
+        mouseDir = dir;
+        if (h->moveType == 5) mouseCount = 0;
+    }
+    if (mouseCount > 20) h->moveType = 9;
+    mouseX0 = x;
+    mouseY0 = y;
+}
+
+void Game::onRightDown(bool leftHeld) {
+    Chara* h = mapParty[0];
+    if (h && h->moveType == 9) h->moveType = 5;
+    if (inBattle) { autoBattle = false; return; }
+    if (eventRunning || !h) return;
+    if (leftHeld && h->motion == -1) {
+        if (riding && h->moveType != 7) leaveVehicle();
+        else actionButton(0);
+        return;
+    }
+    if (!menuRequested && heroChara && heroChara->moveType == 5) { menuRequested = true; return; }
+    post(0x402, focusedType, 0);
+}
+
+void Game::onMouseDblClick() {
+    Chara* h = mapParty[0];
+    if (eventRunning || inBattle || !h || h->motion != -1) return;
+    if (riding && h->moveType != 7) leaveVehicle();
+    else actionButton(0);
+}
 
 void Game::onKeyDown(int vk) {
     pumpMessages();
