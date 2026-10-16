@@ -153,6 +153,8 @@ void Game::pumpMessages() {
         case InputEvent::Quit: quit = true; abortTick = true; break;
         case InputEvent::MouseDown:
         case InputEvent::MouseDblClick: {
+            lastMouseX = e.x;
+            lastMouseY = e.y;
             // a click on a window selects the item under the cursor
             for (int t = 12; t >= 0; t--) {
                 RpgWindow* w = win(t);

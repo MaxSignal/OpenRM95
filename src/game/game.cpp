@@ -1,6 +1,6 @@
 // Game object, start-up, title and the map main loop (FUN_0041e342, FUN_0041ec93, FUN_0041f744)
 #include "game.h"
-#include "battle.h"
+
 #include "../audio/audio.h"
 #include "../platform/platform.h"
 #include "../util/fs.h"
@@ -15,6 +15,15 @@ namespace rm95 {
 
 Game::Game() {}
 Game::~Game() {}
+
+std::string Game::sjisFmtS(const char* fmt, ...) {
+    char buf[2048];
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof buf, fmt, ap);
+    va_end(ap);
+    return buf;
+}
 
 std::string Game::sjisFmt(const char* fmt, ...) {
     char buf[2048];
@@ -56,14 +65,14 @@ bool Game::load(const std::string& dir, std::string& error) {
     if (fs::readFile(fs::find(dir, "CHARA.DAT"), d)) { Reader r(d); for (int i = 0; i < 100; i++) r.bytes(monsters[i].raw, 0xb8); }
     if (fs::readFile(fs::find(dir, "ITEM.DAT"), d)) { Reader r(d); for (int i = 0; i < 100; i++) r.bytes(items[i].raw, 28); }
     if (fs::readFile(fs::find(dir, "MAGIC.DAT"), d)) { Reader r(d); for (int i = 0; i < 100; i++) r.bytes(magics[i].raw, 28); }
-    Battle::loadAnimationTables(*this);
+    loadAnimationTables();
     initPartyRecords();
     return true;
 }
 
 void Game::initPartyRecords() {
     // FUN_004225b6
-    memset(&pb, 0, sizeof pb);
+    pb = PartyBlock{};
     pb.fightingSize = 0;
     for (int a = 0; a < 8; a++) if (rpg.actors[a].startMember()) pb.fightingSize++;
     int nm = 0, non = pb.fightingSize;
@@ -336,7 +345,9 @@ void Game::run() {
     // (the original shows two ASCII logos here, 3 s each)
     fadeToBlack(5);
     reloadPalette(true);
-    int r = titleSequence();
+    int r;
+    if (!startSave.empty() && loadGame(startSave)) { r = 1; eventRunning = false; }
+    else r = titleSequence();
     if (quit) return;
     if (r == 0) {
         screenState = -1;
@@ -375,6 +386,22 @@ void Game::mainLoop() {
         Chara* hero_ = heroChara;
         pumpMessages();
         if (quit) return;
+        if (!pendingSave.empty() && !eventRunning && hero_ && hero_->step == 0) {
+            saveGame(pendingSave);
+            LOG_INFO("saved %s", pendingSave.c_str());
+            pendingSave.clear();
+        }
+        if (testBattle > 0 && !eventRunning && hero_ && hero_->step == 0) {
+            int t = testBattle;
+            testBattle = 0;
+            escapeForbidden = 0;
+            startBattle(t - 1);
+        }
+        if (testEvent >= 0 && !eventRunning && hero_ && hero_->step == 0) {
+            int t = testEvent;
+            testEvent = -1;
+            runEvent(t, nullptr);
+        }
         bool toPost = false;
         if (abortTick) toPost = true;
         if (!toPost && menuRequested) {

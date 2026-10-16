@@ -47,13 +47,24 @@ struct BgmState {
     int32_t a = 0, b = 0;
 };
 
-// Battle animation tables (G+0x4fa / G+0x2c0a)
-struct AnimPart {
-    int file = -1;     // Anm file number
-    int loops = 0, posMode = 0, x = 0, y = 0, startFrame = 0, se = -1;
+// Battle animation tables (FUN_0042a34b)
+struct AnmFile {              // G+0x2c0a + f*0x18
+    int frames = 0;           // +0x00 (set when the file is loaded)
+    int rep = 1;              // +0x04
+    int posX = -2, posY = -1; // +0x08 / +0x0c
+    int start = 0;            // +0x10
+    int sound = 0;            // +0x14 index into the system SE table
 };
-
-class Battle;
+struct BattleAnim {           // G+0x4fa + A*100
+    int count = 1;            // +0x00 number of sub animations
+    int minLen = 3;           // +0x04
+    int delay = 100;          // +0x08 ms per frame
+    int file[10] = {};        // +0x0c
+    int flashMode = 6;        // +0x5c
+    uint8_t r = 0, g = 0, b = 0, gray = 0;  // +0x60..
+};
+// Party action record (G+0xb87a + i*16)
+struct BattleAction { int cmd = 0, target = 0, item = 0, spell = 0; };
 
 class Game {
 public:
@@ -285,42 +296,97 @@ public:
 
     // ---------------- menus ----------------
     int menuMode = 0;           // G+0x1253e
-    int menuActor = 0;          // G+0xb866
-    int menuItem = -1, menuSpell = -1;
+    int menuActor = 0;          // G+0xb866 (member whose command is entered)
+    BattleAction actions[8];    // G+0xb87a
     int listPage = 0;           // G+0x3266
     int listIndex[100] = {};    // G+0x326a
-    int listCount = 0;
+    int listCount = 0;          // G+0x11c7e
+    int listTotal[13] = {};     // DAT_0046ec0c.. (count remembered by each list filler)
     int menuMember = 0;         // G+0x326e
-    int equipSlot = 0;
+    int equipMember = 0;        // G+0x4f6
+    int equipSlot = 0;          // G+0x4f2
+    int enemyList[10] = {};     // G+0xb6be (living enemies sorted by x)
+    int enemyListCount = 0;     // G+0xb6f6
+    int partyList[4] = {};      // G+0xb6e6
+    int partyListCount = 0;     // G+0xb6fa
+    int lastMouseX = -1, lastMouseY = -1;
     void runMenu();             // FUN_0042dba9
-    void openSubmenu(int mode, int idx);  // FUN_0042739a
-    void fillItemList(int page);          // FUN_0042723d
-    void fillMagicList(int page);         // FUN_00426dad
-    void fillShopList(int page);          // FUN_00426fb9
-    void fillTeleportList(int page);      // FUN_0042713e
-    void onPageChange(int type, int page);
-    bool memberUsable(int k);             // state check
+    void openSubmenu(int idx);  // FUN_0042739a
+    std::string buildText(int mode, bool all);   // FUN_00423709
+    int buildItemList(int mode, int member);      // FUN_00426b6e
+    int buildMagicList(int mode);                 // FUN_00426cb4
+    int buildShopList(const std::string& s);      // FUN_00426b38
+    RpgWindow* listWindow(int type, int x, int y, int count);
+    void fillMagicList(int page, int count);      // FUN_00426dad
+    void fillItemList(int page, int count);       // FUN_0042723d
+    void fillTeleportList(int page, int count);   // FUN_0042713e
+    void fillShopList(int page, int count, bool sell);  // FUN_00426fb9
+    void onPageChange(int type, int page);        // FUN_0042f63c
+    int firstActiveMember();                      // FUN_00435797
+    bool menuLocked();                            // FUN_00435881
     void itemMenu();                      // FUN_0043300e
     void itemSelected(int idx);           // FUN_004331d7
-    void magicMenu(int k);                // FUN_0043387a
+    void magicMenu();                     // FUN_0043387a
     void magicSelected(int idx);          // FUN_00433a62
-    void teleportMenu();                  // FUN_00433682
-    void equipSlots(int k);               // FUN_0042669d
-    void equipCandidates(int slot);       // FUN_00426710
-    void equipItem(int idx);              // FUN_00426913
+    void teleportMenu(int owner);         // FUN_00433682
+    void equipSlots();                    // FUN_0042669d
+    void equipCandidates();               // FUN_00426710
+    void equipItem();                     // FUN_00426913
     void statusWindow(int k);             // FUN_004252a3
     void orderMenu();                     // FUN_0042600b
-    void systemMenu(int idx);             // FUN_00427595
-    void useItem(int item, int user, int target);       // FUN_004283b1
-    void itemEffect(int item, int user, int target, std::string& out);  // FUN_004285e3
+    void systemMenu();                    // FUN_00427595
+    void useItem(int item, int user, int target);           // FUN_004283b1
+    void itemEffect(int type, int target, int power);       // FUN_004285e3
     void magicEffect(int spell, int caster, int target, bool isItem);   // FUN_00428a9c
-    void escapeTo(int area);              // FUN_0043475f
-    int menuSelect;                       // scratch
+    void cureStatus(Battler& b);          // FUN_00429b7b
+    bool escapeTo(int area);              // FUN_0043475f
+    void gatherParty();                   // FUN_004356f4
+    void versionDialog();                 // FUN_00434975
 
     // ---------------- battle ----------------
-    std::unique_ptr<Battle> battle;
-    AnimPart animParts[42 * 4];
+    BattleAnim anims[100];                // G+0x4fa
+    AnmFile anmFiles[42];                 // G+0x2c0a
+    void loadAnimationTables();           // FUN_0042a34b
+    TroopData* troop = nullptr;           // G+0x1194e
+    int expTotal = 0, goldTotal = 0, dropItem = -1;  // G+0x11c5e..
+    int16_t savedStats[8][3] = {};        // G+0x12576
+    Surface enemyPic[10];                 // DAT_0046ebe4
+    bool enemyPicValid[10] = {};
+    Rect battleRect;                      // G+0x12556
+    bool commandsDone = false;            // G+0xb86e
+    Battler& combatant(int i) { return i < 100 ? pb.members[i] : enemies[i - 100]; }
     void startBattle(int troop);          // FUN_00434332
+    bool setupBattle(int troop);          // FUN_00422b13
+    bool loadBattleGraphics();            // FUN_00423188 + FUN_0042298f
+    void freeBattle();                    // FUN_00423604 + FUN_0042292e
+    Rect enemyRect(int i) const;
+    void drawEnemies(int skip, int lowered, bool flip);  // background + living enemies
+    bool allEnemiesDead();                // FUN_00423ee2 == 2
+    bool partyDefeated();                 // FUN_00423f48 == 2
+    void battleStatus();                  // FUN_0042c656
+    void battleCursor();                  // FUN_0042788f
+    bool nextActor(bool back);            // FUN_004357c9
+    void battleNext();                    // FUN_00427747
+    void battleCommand(int sel);          // FUN_004240ce
+    void autoBattleRun();                 // FUN_00423fac
+    int pickTarget(int side, int mode);   // FUN_00423c17
+    void executeTurn();                   // FUN_0042cbbb
+    int turnOrder(int* ids);              // FUN_004282b5
+    void partyAct(int i);                 // FUN_0042b8bf
+    void enemyAct(int e);                 // FUN_0042c114
+    void endOfTurn();                     // FUN_0042c96a
+    int escapeChance();                   // FUN_0042b4e6
+    int randomKnownSpell(int i);          // FUN_0042b455
+    int autoHeal(int i, int& target);     // FUN_0042b616
+    int maxLuck();                        // FUN_00427d90
+    void physicalAttack(int a, int t, int mode);  // FUN_00429ccc
+    void applyDamage(int t, int dmg, int attacker);  // FUN_00427976
+    void playAnimation(int a, int target, int caster);  // FUN_0042a760
+    void jumpEnemy(int e, int phase);     // FUN_0042a0f2
+    void removeEnemy(int e, int transition);  // FUN_00427dd3
+    void victory();
+    void gainExp(int who, bool add);      // FUN_0042d498
+    int statusIndex(int status) const;    // FUN_0042c0b5
 
     // ---------------- save ----------------
     bool saveGame(const std::string& path);
@@ -328,12 +394,17 @@ public:
     void saveDialog();                    // FUN_004247e5
     bool loadDialog();                    // FUN_00424957
     std::string chooseSaveFile(bool save);
+    std::string startSave;                // --load
+    std::string pendingSave;              // --save-at (testing)
+    int testBattle = 0;                   // --test-battle (testing)
+    int testEvent = -1;                   // --test-event (testing)
 
     // misc
     int titleSequence();                  // returns 0 new game, 1 loaded
     void logo(int which);                 // FUN_00434a5c
     void toggleScreenMode();              // FUN_00420fb3
     std::string sjisFmt(const char* fmt, ...);
+    static std::string sjisFmtS(const char* fmt, ...);
 };
 
 

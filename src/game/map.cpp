@@ -739,6 +739,7 @@ bool Game::teleport(int mapId, int x, int y) {
 }
 
 void Game::showMap() {
+    LOG_DEBUG("showMap state=%d map=%d", screenState, curMap);
     if (screenState == 0) return;
     if (screenState == 2 || screenState == -2) {
         fadeToBlack(5);

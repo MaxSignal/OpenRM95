@@ -31,11 +31,15 @@ static void usage() {
         "  --soundfont PATH    SoundFont for MIDI playback\n"
         "  --no-audio          disable audio\n"
         "  --verbose           more log output\n"
+        "  --load FILE         start by loading a save file (skips the title screen)\n"
         "testing:\n"
         "  --headless          no window, virtual clock\n"
         "  --keys SPEC         scripted input, e.g. \"3000:RET,5000:DOWN:400\" (ms:key[:hold ms])\n"
         "  --shot MS:FILE      save a screenshot (PPM) at virtual time MS (repeatable)\n"
-        "  --quit-at MS        quit at virtual time MS\n");
+        "  --quit-at MS        quit at virtual time MS\n"
+        "  --save-at MS:FILE   save the game at virtual time MS (when the map is idle)\n"
+        "  --test-battle N     start a battle with troop N (1-based) when the map is shown\n"
+        "  --test-event N      run the script of event N (eveN.dat) when the map is shown\n");
 }
 
 static int keyByName(const std::string& n) {
@@ -57,6 +61,8 @@ int main(int argc, char** argv) {
     std::string font, soundfont, keys;
     std::vector<std::pair<uint32_t, std::string>> shots;
     uint32_t quitAt = 0;
+    std::string loadFile;
+    std::vector<std::pair<uint32_t, std::string>> saves;
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
@@ -72,6 +78,10 @@ int main(int argc, char** argv) {
         else if (a == "--keys") keys = next();
         else if (a == "--shot") { std::string s = next(); size_t c = s.find(':'); if (c != std::string::npos) shots.push_back({(uint32_t)std::atoi(s.c_str()), s.substr(c + 1)}); }
         else if (a == "--quit-at") quitAt = (uint32_t)std::atoi(next().c_str());
+        else if (a == "--load") loadFile = next();
+        else if (a == "--test-battle") game().testBattle = std::atoi(next().c_str());
+        else if (a == "--test-event") game().testEvent = std::atoi(next().c_str());
+        else if (a == "--save-at") { std::string s = next(); size_t c = s.find(':'); if (c != std::string::npos) saves.push_back({(uint32_t)std::atoi(s.c_str()), s.substr(c + 1)}); }
         else dir = a;
     }
     Platform& pf = platform();
@@ -103,6 +113,10 @@ int main(int argc, char** argv) {
                 pf.saveScreenshot(shots.front().second);
                 shots.erase(shots.begin());
             }
+            while (!saves.empty() && t >= saves.front().first) {
+                game().pendingSave = saves.front().second;
+                saves.erase(saves.begin());
+            }
             if (quitAt && t >= quitAt) { game().quit = true; pf.requestQuit(); }
         };
     }
@@ -124,6 +138,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     pf.setTitle(sjisToUtf8(fs::baseName(g.rpgPath.substr(0, g.rpgPath.size() - 4))));
+    g.startSave = loadFile;
     g.run();
     audio().shutdown();
     pf.shutdown();

@@ -314,6 +314,7 @@ void Game::teleportListChange(int m, int add) {
 // ------------------------------------------------------------------------------------------
 
 void Game::runEvent(int id, Chara* ev) {
+    LOG_DEBUG("runEvent %d", id);
     runEventId = id;
     eventRunning = true;
     suspend = false;
